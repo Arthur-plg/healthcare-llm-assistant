@@ -2,15 +2,22 @@ from sentence_transformers import SentenceTransformer
 import pandas as pd
 import numpy as np
 import faiss
+import torch
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+torch.set_num_threads(1)
+
 
 def build_index():
 
     df = pd.read_csv("/Users/arthurpelong/healthcare-llm-assistant/data/processed/avis_clean.csv")
     model = SentenceTransformer("all-MiniLM-L6-v2")
     
-    texts = df["avis_clean"].tolist()
+    texts = df["avis_for_embedding"].tolist()
 
-    df_index = df[['medicament','avis_clean']].copy()
+    df_index = df[['medicament','avis_for_embedding']].copy()
     df_index.reset_index(inplace=True)  # colonne 'index' correspond aux vecteurs FAISS
 
     embeddings = model.encode(texts,show_progress_bar=True,convert_to_numpy=True)

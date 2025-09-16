@@ -1,0 +1,19 @@
+# LLM / Transformers
+torch
+transformers
+sentence-transformers
+
+# Recherche vectorielle
+faiss-cpu
+
+# Data / manipulation
+pandas
+numpy
+scikit-learn
+tqdm
+unidecode
+regex
+
+# Web scraping
+beautifulsoup4
+selenium

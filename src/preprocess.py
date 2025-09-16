@@ -39,6 +39,8 @@ def clean(df):
     df = df.dropna(subset=['avis_clean'])
     df = df[df['avis_clean'] != ""]
 
+    df['avis_for_embedding'] = df.apply(lambda row: f"{row['medicament']}: {row['avis_clean']}", axis=1)
+
     output_path = "/Users/arthurpelong/healthcare-llm-assistant/data/processed/avis_clean.csv"
     df.to_csv(output_path, index=False)
     

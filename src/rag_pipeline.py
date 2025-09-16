@@ -1,82 +1,89 @@
-# rag_pipeline.py
-
 import os
-import pandas as pd
-import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from search import HealthcareSearch
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+import torch
 
-# --- Configuration anti-conflit MacOS / threads
-os.environ["OMP_NUM_THREADS"] = "1"
+def init_causal_llm_bloom(model_name="bigscience/bloomz-1b7", device="cpu"):
+    """
+    Initialisation causal LM léger (Bloom 1B7)
+    """
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
 
-# --- Classe RAG
-class HealthcareRAG:
-    def __init__(self, mapping_path, index_path, top_k=5):
-        # Charger mapping et index FAISS
-        self.df = pd.read_csv(mapping_path)
-        self.index = faiss.read_index(index_path)
-        self.top_k = top_k
-        
-        # Charger modèle embeddings sur CPU
-        import torch
-        torch.set_num_threads(1)
-        self.model = SentenceTransformer("all-MiniLM-L6-v2", device='cpu')
-        
-        # Préparer LLM LangChain (OpenAI GPT)
-        self.llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
-        
-        # Prompt template pour contextualiser la réponse
-        self.prompt_template = PromptTemplate(
-            input_variables=["query", "context"],
-            template=(
-                "Tu es un assistant santé. Voici les avis patients pertinents :\n"
-                "{context}\n\n"
-                "Question utilisateur : {query}\n"
-                "Réponds de manière concise et claire, en te basant sur ces avis."
-            )
-        )
-        self.chain = LLMChain(llm=self.llm, prompt=self.prompt_template)
+    generator = pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        device=0 if device == "cuda" else -1
+    )
+    return generator
 
-    # --- Encodage de la requête
-    def embed_query(self, query):
-        import torch
-        with torch.no_grad():
-            vector = self.model.encode([query]).astype(np.float32)
-        return vector
+def build_structured_context(query, retrieved_docs):
+    """
+    Construit un prompt structuré pour guider la génération
+    """
+    medicaments = {}
+    for doc in retrieved_docs:
+        med = doc['medicament']
+        if med not in medicaments:
+            medicaments[med] = []
+        medicaments[med].append(doc['avis'])
 
-    # --- Recherche FAISS
-    def search(self, query):
-        vector = self.embed_query(query)
-        distances, indices = self.index.search(vector, self.top_k)
-        
-        results = []
-        for idx, dist in zip(indices[0], distances[0]):
-            row = self.df.iloc[idx]
-            results.append({
-                "medicament": row["medicament"],
-                "avis": row["avis_clean"],
-                "score": float(dist)
-            })
-        return results
+    context_parts = []
+    for med, avis_list in medicaments.items():
+        avis_text = "\n- ".join([avis.replace(med, '').strip() for avis in avis_list])
+        context_parts.append(f"{med}:\n- {avis_text}")
 
-    # --- Générer réponse LLM avec top-k avis
-    def generate_answer(self, query):
-        search_results = self.search(query)
-        context_text = "\n".join([f"- [{r['medicament']}] {r['avis']}" for r in search_results])
-        response = self.chain.run({"query": query, "context": context_text})
-        return response
+    context = "\n\n".join(context_parts)
 
-# --- Exemple d'utilisation
+    prompt = f"""
+Voici les avis patients concernant différents médicaments:
+{context}
+
+Question: {query}
+
+Réponds en 3 phrases complètes en français, en synthétisant et reformulant les avis de manière naturelle. Ne répète pas les avis tels quels.
+"""
+    return prompt
+
+def rag_pipeline_bloom(query, mapping_path, index_path, k=3, device="cpu"):
+    """
+    Pipeline RAG 
+    """
+    search_engine = HealthcareSearch(mapping_path, index_path)
+    retrieved = search_engine.search(query, k=k)
+    if not retrieved:
+        return "Aucun avis patient trouvé.", []
+
+    context = build_structured_context(query, retrieved)
+    generator = init_causal_llm_bloom(device=device)
+
+    outputs = generator(
+        context,
+        max_new_tokens=150,
+        do_sample=True,
+        temperature=0.7,
+        top_p=0.9,
+        num_return_sequences=1,
+        return_full_text=False
+    )
+
+    answer = outputs[0].get("generated_text") or outputs[0].get("text") or "Aucune réponse générée"
+    return answer, retrieved
+
 if __name__ == "__main__":
     mapping_path = "/Users/arthurpelong/healthcare-llm-assistant/indexes/mapping_index.csv"
     index_path = "/Users/arthurpelong/healthcare-llm-assistant/indexes/faiss_index"
-    
-    rag = HealthcareRAG(mapping_path, index_path)
-    query = "Quels sont les effets secondaires du Doliprane ?"
-    
-    answer = rag.generate_answer(query)
-    print("\nRéponse générée :\n")
+
+    query = "Donne les effets indésirables liés au Fivasa (s'il y en a)"
+
+    # Exécution du pipeline
+    answer, retrieved = rag_pipeline_bloom(query, mapping_path, index_path, k=3, device="cpu")
+
+    print("==== Réponse générée  ====")
     print(answer)
+
+    print("\n==== Avis récupérés ====")
+    for i, r in enumerate(retrieved, 1):
+        print(f"{i}. [{r['medicament']}] (score: {r['score']:.3f})")
+        print(f"   {r['avis']}\n")

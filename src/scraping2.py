@@ -38,8 +38,8 @@ def scrape_carenity_comments():
     password_input = wait.until(
         EC.presence_of_element_located((By.ID, "password"))
     )
-    email_input.send_keys("arthurpelong@gmail.com")
-    password_input.send_keys("Health5#")
+    email_input.send_keys("...")    # Caché pour github
+    password_input.send_keys("...") # Caché pour github
     password_input.send_keys(Keys.RETURN)
 
     print("✅ Connexion réussie (si identifiants corrects)")
