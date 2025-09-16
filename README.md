@@ -4,6 +4,7 @@
 
 > Ce projet vise à créer un assistant capable de répondre à des questions sur des médicaments à partir d'avis patients.  
 > Les données ont été scrappées sur Carenity à but purement éducatif et non lucratif.
+
 > On passe une requête à l'assistant qui génère une réponse basée sur les avis les plus pertinents liés à cette requête.
 
 ---
@@ -67,4 +68,5 @@
 git clone https://github.com/Arthur-plg/healthcare-llm-assistant.git
 cd healthcare-llm-assistant
 pip install -r requirements.txt
+
 
