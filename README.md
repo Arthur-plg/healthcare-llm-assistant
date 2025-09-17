@@ -58,7 +58,7 @@
 - ⚠️ `rag_pipeline.py`, UI : en cours de développement → incluront la **génération finale via RAG** (Q&A, résumé, tagging)  
 - Embeddings et index FAISS préparés, LLM intégré mais pas encore assez bien géré. 
 
-> Le projet est donc **partiellement fonctionnel** : la collecte et la recherche vectorielle sont opérationnelles, la génération de la réponse finale reste à améliorer car les modèles open source pouvant être run sur CPU sont très basique.
+> Le projet est donc **partiellement fonctionnel** : la collecte et la recherche vectorielle sont opérationnelles, la génération de la réponse finale reste à améliorer car les modèles open source pouvant être run sur CPU sont très basiques.
 > L'application reste à développer.
 
 ---
@@ -69,6 +69,7 @@
 git clone https://github.com/Arthur-plg/healthcare-llm-assistant.git
 cd healthcare-llm-assistant
 pip install -r requirements.txt
+
 
 
 
