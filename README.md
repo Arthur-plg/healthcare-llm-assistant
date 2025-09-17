@@ -36,7 +36,8 @@
    - **Rôle :** combiner **recherche sémantique** et **génération de texte** :  
      - Transformer la requête utilisateur en vecteur  
      - Retrouver les avis patients pertinents via FAISS  
-     - Fournir ce **contexte** au LLM choisi  
+     - Fournir ce **contexte** au LLM choisi, objectif : choisir un causal LM pas trop gros pouvant être run sur CPU
+     - LLM choisi : bigscience/bloomz-1b7
      - Générer une réponse finale (Q&A, résumé, analyse de sentiments)  
 
 6. **Application (UI + Visualisation)**  
@@ -68,5 +69,6 @@
 git clone https://github.com/Arthur-plg/healthcare-llm-assistant.git
 cd healthcare-llm-assistant
 pip install -r requirements.txt
+
 
 
