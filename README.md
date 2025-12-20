@@ -43,11 +43,8 @@
 6. **Application (UI + Visualisation)**  
    - **Outils :** Streamlit ou Gradio + Plotly, Wordcloud  
    - **Rôle :** interface pour interagir avec l’assistant  
-   - **Fonctions prévues :** zone de recherche / champ Q&A, résumés automatiques par médicament, visualisation sentiments & thèmes  
+   - **Fonctions prévues :** zone de recherche / champ Q&A, résumés automatiques par médicament,
 
-7. **Déploiement**  
-   - **Outils :** Streamlit Cloud, Hugging Face Spaces, ou Docker + Cloud provider  
-   - **Rôle :** rendre l’assistant accessible publiquement  
 
 ---
 
@@ -68,6 +65,7 @@
 git clone https://github.com/Arthur-plg/healthcare-llm-assistant.git
 cd healthcare-llm-assistant
 pip install -r requirements.txt
+
 
 
 
