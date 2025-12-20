@@ -1,89 +1,88 @@
 import os
-from search import HealthcareSearch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 import torch
+from groq import Groq
+from search import HealthcareSearch
+from dotenv import load_dotenv
 
-def init_causal_llm_bloom(model_name="bigscience/bloomz-1b7", device="cpu"):
-    """
-    Initialisation causal LM léger (Bloom 1B7)
-    """
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+load_dotenv() 
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+MAPPING_PATH = "/Users/arthurpelong/healthcare-llm-assistant/indexes/mapping_index.csv"
+INDEX_PATH = "/Users/arthurpelong/healthcare-llm-assistant/indexes/faiss_index"
 
-    generator = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        device=0 if device == "cuda" else -1
-    )
-    return generator
+class GroqRAGAssistant:
+    def __init__(self, mapping_path, index_path, api_key):
+        """
+        Initialise le moteur de recherche local et le client API Groq.
+        """
+        self.search_engine = HealthcareSearch(mapping_path, index_path)
+        self.client = Groq(api_key=api_key)
 
-def build_structured_context(query, retrieved_docs):
-    """
-    Construit un prompt structuré pour guider la génération
-    """
-    medicaments = {}
-    for doc in retrieved_docs:
-        med = doc['medicament']
-        if med not in medicaments:
-            medicaments[med] = []
-        medicaments[med].append(doc['avis'])
+    def build_prompt(self, query, retrieved_docs):
+        """
+        Construit un prompt structuré avec les avis trouvés localement.
+        """
+        context_text = ""
+        for i, doc in enumerate(retrieved_docs, 1):
+            clean_avis = doc['avis'].split(':', 1)[-1].strip()
+            context_text += f"Avis {i}: {clean_avis}\n"
 
-    context_parts = []
-    for med, avis_list in medicaments.items():
-        avis_text = "\n- ".join([avis.replace(med, '').strip() for avis in avis_list])
-        context_parts.append(f"{med}:\n- {avis_text}")
+        prompt = f"""Tu es un assistant médical expert en analyse de témoignages de patients.
+Résume les avis suivants concernant la question posée en quelques phrases de manière fluide.
 
-    context = "\n\n".join(context_parts)
+CONSIGNES STRICTES :
+1. Rappelle que tu ne fais que résumé des avis patients et que ta réponse n'est en rien celle d'un professionnel de santé.
 
-    prompt = f"""
-Voici les avis patients concernant différents médicaments:
-{context}
+AVIS PATIENTS :
+{context_text}
 
-Question: {query}
+QUESTION : {query}
 
-Réponds en 3 phrases complètes en français, en synthétisant et reformulant les avis de manière naturelle. Ne répète pas les avis tels quels.
-"""
-    return prompt
+RÉPONSE (en français) :"""
+        return prompt
 
-def rag_pipeline_bloom(query, mapping_path, index_path, k=3, device="cpu"):
-    """
-    Pipeline RAG 
-    """
-    search_engine = HealthcareSearch(mapping_path, index_path)
-    retrieved = search_engine.search(query, k=k)
-    if not retrieved:
-        return "Aucun avis patient trouvé.", []
+    def generate_answer(self, prompt):
 
-    context = build_structured_context(query, retrieved)
-    generator = init_causal_llm_bloom(device=device)
+        try:
+            completion = self.client.chat.completions.create(
+                model="llama-3.3-70b-versatile", 
+                messages=[
+                    {"role": "system", "content": "Tu es un assistant médical factuel."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,  
+                max_tokens=300,
+                top_p=1,
+                stream=False
+            )
+            return completion.choices[0].message.content
+        except Exception as e:
+            return f"Erreur lors de la génération avec Groq : {str(e)}"
 
-    outputs = generator(
-        context,
-        max_new_tokens=150,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        num_return_sequences=1,
-        return_full_text=False
-    )
+    def run(self, query):
 
-    answer = outputs[0].get("generated_text") or outputs[0].get("text") or "Aucune réponse générée"
-    return answer, retrieved
+        retrieved = self.search_engine.search(query, k=5)
+
+        if not retrieved:
+            return "Désolé, je n'ai trouvé aucun avis patient correspondant à votre demande.", []
+
+        prompt = self.build_prompt(query, retrieved)
+        answer = self.generate_answer(prompt)
+
+        return answer, retrieved
 
 if __name__ == "__main__":
-    mapping_path = "/Users/arthurpelong/healthcare-llm-assistant/indexes/mapping_index.csv"
-    index_path = "/Users/arthurpelong/healthcare-llm-assistant/indexes/faiss_index"
+   
+    assistant = GroqRAGAssistant(MAPPING_PATH, INDEX_PATH, GROQ_API_KEY)
+    
+    user_query = "Traitement’ Fivasa ?"
+    
+    reponse, sources = assistant.run(user_query)
 
-    query = "Donne les effets indésirables liés au Fivasa (s'il y en a)"
-
-    # Exécution du pipeline
-    answer, retrieved = rag_pipeline_bloom(query, mapping_path, index_path, k=3, device="cpu")
-
-    print("==== Réponse générée  ====")
-    print(answer)
-
-    print("\n==== Avis récupérés ====")
-    for i, r in enumerate(retrieved, 1):
-        print(f"{i}. [{r['medicament']}] (score: {r['score']:.3f})")
-        print(f"   {r['avis']}\n")
+    print("\n" + "="*30)
+    print("SYNTHÈSE MÉDICALE")
+    print("="*30)
+    print(reponse)
+    print("\n" + "="*30)
+    print("SOURCES UTILISÉES")
+    for s in sources:
+        print(f"- [Score: {s['score']:.3f}] [{s['medicament'].upper()}] {s['avis']}")
