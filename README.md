@@ -31,14 +31,14 @@
    - **Rôle :** stocker les embeddings et retrouver rapidement les plus proches pour la recherche sémantique  
    - **Output attendu :** `indexes/faiss_index`  
 
-5. **RAG (Retrieval-Augmented Generation)**  
-   - **Outils :** FAISS, SentenceTransformer, HuggingFace Transformers 
+5. **RAG (Retrieval-Augmented Generation)** 
+   - **Outils :** FAISS, SentenceTransformer, Groq API, Llama 3.3 70b
    - **Rôle :** combiner **recherche sémantique** et **génération de texte** :  
      - Transformer la requête utilisateur en vecteur  
-     - Retrouver les avis patients pertinents via FAISS  
-     - Fournir ce **contexte** au LLM choisi, objectif : choisir un causal LM pas trop gros pouvant être run sur CPU
-     - LLM choisi : bigscience/bloomz-1b7
-     - Générer une réponse finale (Q&A, résumé, analyse de sentiments)  
+     - Retrouver les avis patients pertinents via FAISS  (filtrer la recherche sur seulement les avis sur le médicament étant présent dans la user query)
+     - Fournir ce **contexte** au LLM choisi : ici utilisation de Llama 3.3 70b à travers l'API Groq
+     - LLM choisi : Llama 3.3 70b
+     - Générer une réponse finale (synthèse des avis)  
 
 6. **Application (UI + Visualisation)**  
    - **Outils :** Streamlit ou Gradio + Plotly, Wordcloud  
@@ -55,10 +55,9 @@
 
 - ✅ `scraping1.py` et `scraping2.py` : récupération des médicaments et commentaires fonctionnelle  
 - ✅ `search.py` : recherche vectorielle FAISS fonctionnelle → **retrieval déjà opérationnel**  
-- ⚠️ `rag_pipeline.py`, UI : en cours de développement → incluront la **génération finale via RAG** (Q&A, résumé, tagging)  
-- Embeddings et index FAISS préparés, LLM intégré mais pas encore assez bien géré. 
+- ✅ `rag_pipeline.py` : **génération finale via RAG**  
+- UI : en cours de développement 
 
-> Le projet est donc **partiellement fonctionnel** : la collecte et la recherche vectorielle sont opérationnelles, la génération de la réponse finale reste à améliorer car les modèles open source pouvant être run sur CPU sont très basiques.
 > L'application reste à développer.
 
 ---
@@ -69,6 +68,7 @@
 git clone https://github.com/Arthur-plg/healthcare-llm-assistant.git
 cd healthcare-llm-assistant
 pip install -r requirements.txt
+
 
 
 
