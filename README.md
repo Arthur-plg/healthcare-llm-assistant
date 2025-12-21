@@ -51,12 +51,14 @@
 ## État actuel
 
 - ✅ `scraping1.py` et `scraping2.py` : récupération des médicaments et commentaires fonctionnelle  
-- ✅ `search.py` : recherche vectorielle FAISS fonctionnelle → **retrieval déjà opérationnel**  
-- ⚠️ `rag_pipeline.py`, UI : en cours de développement → incluront la **génération finale via RAG** (Q&A, résumé, tagging)  
-- Embeddings et index FAISS préparés, LLM intégré mais pas encore assez bien géré. 
+- ✅ `search.py` : recherche vectorielle FAISS fonctionnelle → **retrieval opérationnel**  
+- ✅ `rag_pipeline.py` **génération finale via RAG** 
+- ✅ `app.py`: UI fonctionnelle
+---
 
-> Le projet est donc **partiellement fonctionnel** : la collecte et la recherche vectorielle sont opérationnelles, la génération de la réponse finale reste à améliorer car les modèles open source pouvant être run sur CPU sont très basiques.
-> L'application reste à développer.
+## A améliorer
+
+- Qualité des embeddings dans un contexte de santé 
 
 ---
 
