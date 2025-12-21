@@ -74,7 +74,7 @@ if __name__ == "__main__":
    
     assistant = GroqRAGAssistant(MAPPING_PATH, INDEX_PATH, GROQ_API_KEY)
     
-    user_query = "Traitement’ Fivasa ?"
+    user_query = "Traitement Fivasa ?"
     
     reponse, sources = assistant.run(user_query)
 
