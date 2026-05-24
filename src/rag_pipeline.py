@@ -12,41 +12,47 @@ INDEX_PATH = "/Users/arthurpelong/healthcare-llm-assistant/indexes/faiss_index"
 class GroqRAGAssistant:
     def __init__(self, mapping_path, index_path, api_key):
         """
-        Initialise le moteur de recherche local et le client API Groq.
+        Initializes the local search engine and the Groq API client.
         """
         self.search_engine = HealthcareSearch(mapping_path, index_path)
         self.client = Groq(api_key=api_key)
 
     def build_prompt(self, query, retrieved_docs):
         """
-        Construit un prompt structuré avec les avis trouvés localement.
+        Constructs a structured prompt containing the retrieved local patient reviews.
+        Note: The source comments are in French, but the LLM is instructed to output in English.
         """
         context_text = ""
         for i, doc in enumerate(retrieved_docs, 1):
             clean_avis = doc['avis'].split(':', 1)[-1].strip()
-            context_text += f"Avis {i}: {clean_avis}\n"
+            context_text += f"Review {i}: {clean_avis}\n"
 
-        prompt = f"""Tu es un assistant médical expert en analyse de témoignages de patients.
-Résume les avis suivants concernant la question posée en quelques phrases de manière fluide.
+        prompt = f"""You are a medical assistant expert in analyzing patient testimonials.
+Summarize the following patient reviews concerning the question in a few smooth sentences.
 
-CONSIGNES STRICTES :
-1. Rappelle que tu ne fais que résumé des avis patients et que ta réponse n'est en rien celle d'un professionnel de santé.
+CRITICAL NOTE:
+The patient reviews provided below are written in French. You MUST read and analyze them in French, but write your final summary response entirely in English.
 
-AVIS PATIENTS :
+STRICT GUIDELINES:
+1. Clearly remind the user that you are only summarizing patient reviews and that your response is by no means professional medical advice.
+
+PATIENT REVIEWS (in French):
 {context_text}
 
-QUESTION : {query}
+QUESTION: {query}
 
-RÉPONSE (en français) :"""
+RESPONSE (in English):"""
         return prompt
 
     def generate_answer(self, prompt):
-
+        """
+        Calls the Groq API to generate the final response using Llama-3.3-70b.
+        """
         try:
             completion = self.client.chat.completions.create(
                 model="llama-3.3-70b-versatile", 
                 messages=[
-                    {"role": "system", "content": "Tu es un assistant médical factuel."},
+                    {"role": "system", "content": "You are a factual medical assistant."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1,  
@@ -56,33 +62,35 @@ RÉPONSE (en français) :"""
             )
             return completion.choices[0].message.content
         except Exception as e:
-            return f"Erreur lors de la génération avec Groq : {str(e)}"
+            return f"Error during generation with Groq: {str(e)}"
 
     def run(self, query):
-
-        retrieved = self.search_engine.search(query, k=5)
+        """
+        Main runner: retrieves documents and generates a response.
+        """
+        retrieved = self.search_engine.search(query, k=10)
 
         if not retrieved:
-            return "Désolé, je n'ai trouvé aucun avis patient correspondant à votre demande.", []
+            return "Sorry, I could not find any patient reviews matching your request.", []
 
         prompt = self.build_prompt(query, retrieved)
         answer = self.generate_answer(prompt)
 
         return answer, retrieved
 
+
 if __name__ == "__main__":
-   
     assistant = GroqRAGAssistant(MAPPING_PATH, INDEX_PATH, GROQ_API_KEY)
     
     user_query = "Traitement Fivasa ?"
     
-    reponse, sources = assistant.run(user_query)
+    response, sources = assistant.run(user_query)
 
     print("\n" + "="*30)
-    print("SYNTHÈSE MÉDICALE")
+    print("MEDICAL SUMMARY")
     print("="*30)
-    print(reponse)
+    print(response)
     print("\n" + "="*30)
-    print("SOURCES UTILISÉES")
+    print("SOURCES USED")
     for s in sources:
         print(f"- [Score: {s['score']:.3f}] [{s['medicament'].upper()}] {s['avis']}")

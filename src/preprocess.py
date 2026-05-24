@@ -5,7 +5,9 @@ import unidecode
 df = pd.read_csv("/Users/arthurpelong/healthcare-llm-assistant/data/raw/comments_final.csv")
 
 def get_med(x):
-
+    """
+    Extracts the medication name from a URL string.
+    """
     y = x.split('/')
 
     if y[-1].lower().startswith("a-313"):
@@ -17,22 +19,27 @@ def get_med(x):
     
 
 def clean_text(text):
-    
-    # Minuscules
+    """
+    Cleans text by lowering, removing accents, and stripping special characters.
+    """
+    # Lower case
     text = text.lower()
 
-    # Supprimer accents
+    # Remove accents
     text = unidecode.unidecode(text)
 
-    # Supprimer ponctuation et caracteres speciaux 
+    # Remove punctuation and special characters
     text = re.sub(r"[^a-z0-9\s]", " ", text) 
 
-    # Supprimer espaces multiples
+    # Remove multiple spaces
     text = re.sub(r"\s+", " ", text).strip()
 
     return text
 
 def clean(df): 
+    """
+    Performs data cleaning pipeline and exports clean patient comments CSV.
+    """
     df['medicament'] = df['url'].apply(get_med)
     df['avis_clean'] = df['comment'].apply(clean_text)
 
@@ -49,4 +56,3 @@ def clean(df):
 if __name__ == "__main__":
     df = pd.read_csv("/Users/arthurpelong/healthcare-llm-assistant/data/raw/comments_final.csv")
     clean(df)
-

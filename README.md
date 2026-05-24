@@ -2,73 +2,113 @@
 
 **Domain-specific LLM assistant for patient forums** (Educational project – not medical advice)
 
-> Ce projet vise à créer un assistant capable de répondre à des questions sur des médicaments à partir d'avis patients.  
-> Les données ont été scrappées sur Carenity à but purement éducatif et non lucratif.
+> This project aims to build an assistant capable of answering questions about medications based on patient reviews.  
+> The data was scraped from Carenity for purely educational, non-profit purposes.
 
-> On passe une requête à l'assistant qui génère une réponse basée sur les avis les plus pertinents liés à cette requête.
-
----
-
-## Pipeline / Cartographie des technos
-
-1. **Scraping / Collecte des données**  
-   - **Outils :** `requests`, `BeautifulSoup`, `selenium`, `pandas`  
-   - **Rôle :** récupérer les médicaments et les avis patients depuis Carenity  
-   - **Output attendu :** `data/raw/medicaments_carenity.csv`, `data/raw/comments_final.csv`  
-
-2. **Prétraitement (NLP classique)**  
-   - **Outils :** `pandas`, `regex`  
-   - **Rôle :** nettoyer et uniformiser les textes patients  
-   - **Output attendu :** `data/processed/avis_clean.csv`  
-
-3. **Embeddings (Vectorisation sémantique)**  
-   - **Outils :** `sentence-transformers` (ex. `all-MiniLM-L6-v2`)  
-   - **Rôle :** transformer chaque avis en vecteur dense pour capturer le sens et le contexte  
-   - **Output attendu :** matrice de vecteurs + sauvegarde indexable  
-
-4. **Base vectorielle / Indexation**  
-   - **Outils :** FAISS  
-   - **Rôle :** stocker les embeddings et retrouver rapidement les plus proches pour la recherche sémantique  
-   - **Output attendu :** `indexes/faiss_index`  
-
-5. **RAG (Retrieval-Augmented Generation)** 
-   - **Outils :** FAISS, SentenceTransformer, Groq API, Llama 3.3 70b
-   - **Rôle :** combiner **recherche sémantique** et **génération de texte** :  
-     - Transformer la requête utilisateur en vecteur  
-     - Retrouver les avis patients pertinents via FAISS  (filtrer la recherche sur seulement les avis sur le médicament étant présent dans la user query)
-     - Fournir ce **contexte** au LLM choisi : ici utilisation de Llama 3.3 70b à travers l'API Groq
-     - LLM choisi : Llama 3.3 70b
-     - Générer une réponse finale (synthèse des avis)  
-
-6. **Application (UI + Visualisation)**  
-   - **Outils :** Streamlit 
-   - **Rôle :** interface pour interagir avec l’assistant  
-   - **Fonctions prévues :** zone de recherche / champ Q&A, résumés automatiques par médicament,
-
+> The user submits a query to the assistant, which generates a response based on the most relevant patient reviews retrieved for that query.
 
 ---
 
-## État actuel
+## Tech Stack & Pipeline Map
 
-- ✅ `scraping1.py` et `scraping2.py` : récupération des médicaments et commentaires fonctionnelle  
-- ✅ `search.py` : recherche vectorielle FAISS fonctionnelle → **retrieval opérationnel**  
-- ✅ `rag_pipeline.py` **génération finale via RAG** 
-- ✅ `app.py`: UI fonctionnelle
+1. **Scraping / Data Collection**  
+   - **Tools:** `requests`, `BeautifulSoup`, `selenium`, `pandas`  
+   - **Role:** Retrieve medications and patient reviews from Carenity  
+   - **Expected Output:** `data/raw/medicaments_carenity.csv`, `data/raw/comments_final.csv`  
+
+2. **Preprocessing (Classic NLP)**  
+   - **Tools:** `pandas`, `regex`  
+   - **Role:** Clean and standardize patient reviews  
+   - **Expected Output:** `data/processed/avis_clean.csv`  
+
+3. **Embeddings (Semantic Vectorization)**  
+   - **Tools:** `sentence-transformers` (specifically `all-MiniLM-L6-v2`)  
+   - **Role:** Transform each review into a dense vector to capture meaning and context  
+   - **Expected Output:** Dense vector matrix + indexable file  
+
+4. **Vector Database / Indexing**  
+   - **Tools:** FAISS  
+   - **Role:** Store embeddings and quickly retrieve the nearest neighbors for semantic search  
+   - **Expected Output:** `indexes/faiss_index`  
+
+5. **RAG (Retrieval-Augmented Generation)**  
+   - **Tools:** FAISS, SentenceTransformer, Groq API, Llama-3.3-70b-versatile  
+   - **Role:** Combine **semantic search** and **text generation**:  
+     - Vectorize the user's query  
+     - Retrieve relevant patient reviews via FAISS (filtering specifically for the drug mentioned in the query)  
+     - Provide this **context** to the LLM (Llama-3.3-70b via Groq API)  
+     - The LLM processes the French context and generates a synthesized response **in English**  
+
+6. **Application (UI & Visualization)**  
+   - **Tools:** Streamlit  
+   - **Role:** User-friendly interface to interact with the assistant  
+   - **Features:** Q&A search bar, instant automatic summaries by medication  
+
 ---
 
-## A améliorer
+## Current Status
 
-- Qualité des embeddings dans un contexte de santé 
+- ✅ `scraping1.py` and `scraping2.py`: Medication and review collection is fully functional  
+- ✅ `search.py`: FAISS semantic search is functional $\rightarrow$ **retrieval is operational**  
+- ✅ `rag_pipeline.py`: **final generation via RAG is fully operational**  
+- ✅ `app.py`: Streamlit UI is fully functional  
+- ✅ `eval_deepeval.py`: Scientific evaluation with DeepEval is fully operational  
+
+---
+
+## Areas for Improvement
+
+- Semantic embedding quality tuned specifically for the healthcare context.
 
 ---
 
 ## Installation
 
+1. Clone the repository and navigate into the folder:
+   ```bash
+   git clone https://github.com/Arthur-plg/healthcare-llm-assistant.git
+   cd healthcare-llm-assistant
+   ```
+
+2. Activate the Conda environment:
+   ```bash
+   conda activate rag_env
+   ```
+
+3. Install required dependencies (including the evaluation framework):
+   ```bash
+   pip install -r requirements.txt
+   pip install streamlit groq python-dotenv deepeval
+   ```
+
+---
+
+## How to Run the Project
+
+### 1. Launch the Web Interface (Streamlit UI) ⚕️
+To run and interact with the user interface:
 ```bash
-git clone https://github.com/Arthur-plg/healthcare-llm-assistant.git
-cd healthcare-llm-assistant
-pip install -r requirements.txt
+streamlit run src/app.py
+```
 
+### 2. Run RAG Evaluation 📊
 
+We have two ways to evaluate the quality of the generated answers:
 
+#### A. Advanced Evaluation using **DeepEval** (Recommended) 🏆
+This script runs the **DeepEval** evaluation framework on top of our Groq model (`llama-3.3-70b-versatile`) to calculate two key RAG metrics:
+* **Faithfulness** (Fidelity / No Hallucinations): Checks if the assistant's response is strictly based on the retrieved context from FAISS.
+* **Answer Relevancy** (Relevance): Checks if the assistant's response directly and usefully answers the user's query.
 
+To execute this evaluation:
+```bash
+python src/eval_deepeval.py
+```
+Detailed scores and explanations will be exported to `deepeval_results.csv`.
+
+#### B. Simple Evaluation using a Custom LLM Judge
+A lightweight evaluation script that uses a custom judge prompt to rate faithfulness and relevance:
+```bash
+python src/eval.py
+```
+Results will be saved in `evaluation_results.csv`.

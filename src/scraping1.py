@@ -8,11 +8,11 @@ BASE_URL = "https://www.carenity.com"
 OUT_PATH = "/Users/arthurpelong/healthcare-llm-assistant/data/raw/medicaments_carenity.csv"
 
 def scrape_carenity_medicaments():
-    """Scrape la liste des médicaments Carenity (A-Z) et sauvegarde CSV."""
+    """Scrapes the list of Carenity medications (A-Z) and saves it to a CSV."""
     medicaments_dict = {}
 
     for LETTER in string.ascii_uppercase:
-        print(f"=== Lettre {LETTER} ===")
+        print(f"=== Letter {LETTER} ===")
         page = 1
         while True:
             url = f"{BASE_URL}/donner-mon-avis/index-medicaments/{LETTER}"
@@ -21,7 +21,7 @@ def scrape_carenity_medicaments():
 
             response = requests.get(url)
             if response.status_code != 200:
-                print(f"⚠️ Erreur {response.status_code} sur {url}")
+                print(f"⚠️ Error {response.status_code} on {url}")
                 break
 
             soup = BeautifulSoup(response.text, "html.parser")
@@ -29,6 +29,7 @@ def scrape_carenity_medicaments():
             for a in soup.find_all("a", href=True):
                 href = a["href"]
                 name = a.get_text(strip=True)
+                # Keep "en savoir plus" since it's a French HTML text match on the scraped site
                 if href.startswith("/donner-mon-avis/medicaments/") and name.lower() != "en savoir plus":
                     full_url = BASE_URL + href
                     if full_url not in medicaments_dict:
@@ -40,15 +41,15 @@ def scrape_carenity_medicaments():
             page += 1
             time.sleep(0.5)
 
-        print(f"Total médicaments collectés jusque-là : {len(medicaments_dict)}")
+        print(f"Total medications collected so far: {len(medicaments_dict)}")
 
-    # Transformer en DataFrame
+    # Convert to DataFrame
     medicaments = pd.DataFrame([{"name": name, "url": url} for url, name in medicaments_dict.items()])
-    print(f"\n✅ Nombre total de médicaments collectés : {len(medicaments)}")
+    print(f"\n✅ Total number of medications collected: {len(medicaments)}")
 
-    # Sauvegarde CSV
+    # CSV Save
     medicaments.to_csv(OUT_PATH, index=False)
-    print(f"💾 Liste des médicaments sauvegardée dans {OUT_PATH}")
+    print(f"💾 Medication list saved to {OUT_PATH}")
 
     return medicaments
 

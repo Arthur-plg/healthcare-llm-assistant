@@ -3,51 +3,51 @@ from rag_pipeline import GroqRAGAssistant
 import os
 from dotenv import load_dotenv
 
-# Configuration de la page
+# Page Configuration
 st.set_page_config(
     page_title="H-LLM Assistant",
     page_icon="medical_symbol",
     layout="centered"
 )
 
-# Chargement des variables d'environnement et constantes
+# Load Environment Variables and Constants
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MAPPING_PATH = "/Users/arthurpelong/healthcare-llm-assistant/indexes/mapping_index.csv"
 INDEX_PATH = "/Users/arthurpelong/healthcare-llm-assistant/indexes/faiss_index"
 
-# Initialisation de l'assistant (mise en cache pour éviter de recharger le modèle à chaque clic)
+# Initialize the assistant (cached to avoid reloading the model on every click)
 @st.cache_resource
 def load_assistant():
     return GroqRAGAssistant(MAPPING_PATH, INDEX_PATH, GROQ_API_KEY)
 
 assistant = load_assistant()
 
-# --- Interface Utilisateur ---
-st.title("⚕️ Assistant Médical (Avis Patients)")
+# --- User Interface ---
+st.title("⚕️ Medical Assistant (Patient Reviews)")
 st.markdown("""
-Cette application résume les témoignages de patients sur des médicaments spécifiques. 
-*Note : Ceci est une synthèse d'avis et ne remplace pas un avis médical.*
+This application summarizes patient reviews about specific medications. 
+*Note: This is a summary of patient feedback and does not replace professional medical advice.*
 """)
 
-# Barre de recherche
-query = st.text_input("Posez votre question sur un traitement (ex: 'Effets secondaires du Fivasa ?')", placeholder="Rechercher...")
+# Search Bar
+query = st.text_input("Ask a question about a treatment (e.g., 'Side effects of Fivasa?')", placeholder="Search...")
 
 if query:
-    with st.spinner("Analyse des avis en cours..."):
-        # Appel de votre pipeline existant
-        reponse, sources = assistant.run(query)
+    with st.spinner("Analyzing patient reviews..."):
+        # Call the existing RAG pipeline
+        answer, sources = assistant.run(query)
         
-        # Affichage de la réponse du LLM
-        st.subheader("🤖 Synthèse de l'Assistant")
-        st.info(reponse)
+        # Display the LLM summary response
+        st.subheader("🤖 Assistant Summary")
+        st.info(answer)
         
-        # Affichage des sources (expander pour ne pas encombrer l'écran)
-        with st.expander("🔍 Voir les avis sources utilisés"):
+        # Display the source reviews (in an expander to keep the UI clean)
+        with st.expander("🔍 View patient review sources used"):
             for i, s in enumerate(sources):
-                st.markdown(f"**Avis {i+1}** - *Médicament : {s['medicament'].upper()}* (Score: {s['score']:.3f})")
+                st.markdown(f"**Review {i+1}** - *Medication: {s['medicament'].upper()}* (Score: {s['score']:.3f})")
                 st.write(s['avis'])
                 st.divider()
 
-# Pied de page
-st.caption("Développé avec Streamlit & Groq Llama-3.3")
+# Footer
+st.caption("Developed with Streamlit & Groq Llama-3.3")

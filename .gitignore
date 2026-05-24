@@ -1,5 +1,8 @@
 .env
+.DS_Store
 __pycache__/
+.deepeval/
 indexes/
 data/
+datasets/
 *.csv
